@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pul Hisobi — Shaxsiy Moliya Boshqaruvi</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0284c7', 600: '#0369a1', 700: '#075985', 900: '#0c4a6e' },
+                        income: '#10b981',
+                        expense: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-sans min-h-screen pb-20 md:pb-6 transition-colors duration-200">
+
+    <!-- PIN Screen Modal -->
+    <div id="pinModal" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl max-w-xs w-full text-center shadow-xl">
+            <i class="fa-solid fa-lock text-4xl text-primary-600 mb-3"></i>
+            <h3 class="text-xl font-bold mb-1">Xavfsizlik PIN-kodi</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Ilovaga kirish uchun 4 xonali PIN-kodni kiriting</p>
+            <div class="flex justify-center gap-2 mb-4">
+                <input type="password" maxlength="4" id="pinInput" class="w-32 text-center text-2xl tracking-widest p-2 border rounded-xl dark:bg-slate-700 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500">
+            </div>
+            <button onclick="checkPin()" class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 rounded-xl font-semibold">Kirish</button>
+        </div>
+    </div>
+
+    <!-- Main Header -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center text-xl font-bold">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Pul Hisobi</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400" id="headerSyncStatus">Lokal saqlash</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="toggleIncognito()" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" title="Yashirin rejim">
+                    <i id="incognitoIcon" class="fa-solid fa-eye"></i>
+                </button>
+                <button onclick="toggleTheme()" class="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700" title="Rejimni o'zgartirish">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="max-w-5xl mx-auto px-4 py-6">
+
+        <!-- DASHBOARD TAB -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <!-- Balans kartasi -->
+            <div class="bg-gradient-to-r from-primary-700 to-primary-900 text-white rounded-3xl p-6 shadow-lg relative overflow-hidden">
+                <div class="relative z-10">
+                    <span class="text-xs uppercase tracking-wider text-primary-200 font-semibold">Umumiy Balans</span>
+                    <h2 class="text-3xl md:text-4xl font-extrabold mt-1 mb-4" id="totalBalance">0 UZS</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-primary-600/50">
+                        <div>
+                            <div class="flex items-center gap-2 text-xs text-primary-200">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                                Jami Kirim
+                            </div>
+                            <p class="text-lg font-bold text-emerald-300 mt-0.5" id="totalIncome">0 UZS</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 text-xs text-primary-200">
+                                <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                                Jami Chiqim
+                            </div>
+                            <p class="text-lg font-bold text-rose-300 mt-0.5" id="totalExpense">0 UZS</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tezkor Amallar -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="openTransactionModal('income')" class="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 px-4 rounded-2xl shadow transition">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    Kirim qo'shish
+                </button>
+                <button onclick="openTransactionModal('expense')" class="flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-semibold py-3 px-4 rounded-2xl shadow transition">
+                    <i class="fa-solid fa-minus-circle"></i>
+                    Chiqim qo'shish
+                </button>
+            </div>
+
+            <!-- Hamyonlar ro'yxati -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-lg">Hamyonlar</h3>
+                    <button onclick="openWalletModal()" class="text-sm text-primary-600 hover:underline font-semibold">+ Yangi hamyon</button>
+                </div>
+                <div id="walletsList" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <!-- Javascript tomonidan to'ldiriladi -->
+                </div>
+            </div>
+
+            <!-- Statistik Grafik -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 class="font-bold text-lg mb-4">Oylik nisbat</h3>
+                <div class="h-56">
+                    <canvas id="dashboardChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Oxirgi Amallar -->
+            <div>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="font-bold text-lg">Oxirgi amallar</h3>
+                    <button onclick="switchTab('history')" class="text-sm text-primary-600 hover:underline font-semibold">Barchasini ko'rish</button>
+                </div>
+                <div id="recentTransactions" class="space-y-2">
+                    <!-- Transactions list -->
+                </div>
+            </div>
+        </section>
+
+        <!-- HISTORY TAB -->
+        <section id="tab-history" class="tab-content space-y-4 hidden">
+            <h2 class="text-2xl font-bold">Amallar Tarixi</h2>
+            
+            <!-- Filtr va Qidiruv -->
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 shadow-sm">
+                <input type="text" id="historySearch" oninput="filterHistory()" placeholder="Izoh yoki nom bo'yicha qidiruv..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500">
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <select id="filterType" onchange="filterHistory()" class="p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl">
+                        <option value="all">Barcha turlar</option>
+                        <option value="income">Kirim</option>
+                        <option value="expense">Chiqim</option>
+                    </select>
+                    <select id="filterCategory" onchange="filterHistory()" class="p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl">
+                        <option value="all">Barcha kategoriyalar</option>
+                    </select>
+                    <input type="date" id="filterStartDate" onchange="filterHistory()" class="p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl">
+                    <input type="date" id="filterEndDate" onchange="filterHistory()" class="p-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl">
+                </div>
+            </div>
+
+            <!-- Filtrlangan ro'yxat -->
+            <div id="historyList" class="space-y-2">
+                <!-- Javascript dinamik joylaydi -->
+            </div>
+        </section>
+
+        <!-- STATISTICS TAB -->
+        <section id="tab-stats" class="tab-content space-y-6 hidden">
+            <h2 class="text-2xl font-bold">Tahlil va Statistika</h2>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h3 class="font-bold text-lg mb-3">Xarajatlar kategoriyalar kesimida</h3>
+                <div class="h-64">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- BUDGET TAB -->
+        <section id="tab-budget" class="tab-content space-y-6 hidden">
+            <div class="flex justify-between items-center">
+                <h2 class="text-2xl font-bold">Oylik Byudjetlar</h2>
+                <button onclick="openBudgetModal()" class="bg-primary-600 text-white px-3 py-1.5 rounded-xl text-sm font-semibold hover:bg-primary-700">+ Byudjet o'rnatish</button>
+            </div>
+            <div id="budgetsList" class="grid gap-3">
+                <!-- Javascript dinamik to'ldiradi -->
+            </div>
+        </section>
+
+        <!-- SETTINGS TAB -->
+        <section id="tab-settings" class="tab-content space-y-6 hidden">
+            <h2 class="text-2xl font-bold">Sozlamalar</h2>
+
+            <!-- Google Sheets sozlamalari -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i> Google Sheets Integratsiyasi
+                </h3>
+                <p class="text-sm text-slate-500">Google Sheets Web App URL manzilini kiriting:</p>
+                <input type="url" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border rounded-xl text-sm">
+                <button onclick="saveSheetUrl()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold">URLni Saqlash</button>
+            </div>
+
+            <!-- Kategoriyalarni boshqarish -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                <h3 class="font-bold text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-primary-600"></i> Kategoriya qo'shish
+                </h3>
+                <div class="flex gap-2">
+                    <select id="newCatType" class="p-2 border rounded-xl dark:bg-slate-700">
+                        <option value="expense">Chiqim</option>
+                        <option value="income">Kirim</option>
+                    </select>
+                    <input type="text" id="newCatName" placeholder="Kategoriya nomi" class="flex-1 p-2 border rounded-xl dark:bg-slate-700">
+                    <button onclick="addNewCategory()" class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-xl font-semibold">Qo'shish</button>
+                </div>
+            </div>
+
+            <!-- Zaxira va Eksport -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                <h3 class="font-bold text-lg">Ma'lumotlarni eksport/import qilish</h3>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportToJSON()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 px-3 py-2 rounded-xl text-sm font-semibold">JSON yuklab olish</button>
+                    <button onclick="exportToCSV()" class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 px-3 py-2 rounded-xl text-sm font-semibold">CSV eksport</button>
+                    <button onclick="clearAllData()" class="bg-rose-100 text-rose-600 hover:bg-rose-200 px-3 py-2 rounded-xl text-sm font-semibold">Barchasini tozalash</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Operatsiya qo'shish -->
+    <div id="transactionModal" class="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-0 md:p-4 hidden">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-t-3xl md:rounded-3xl p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 id="modalTitle" class="text-xl font-bold">Yangi Amal</h3>
+                <button onclick="closeTransactionModal()" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+            </div>
+            
+            <form id="transactionForm" onsubmit="saveTransaction(event)" class="space-y-3">
+                <input type="hidden" id="txId">
+                <input type="hidden" id="txType" value="income">
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Summa (UZS)</label>
+                    <input type="number" id="txAmount" required min="1" placeholder="0" class="w-full p-3 border rounded-xl text-lg font-bold dark:bg-slate-700 dark:border-slate-600">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Kategoriya</label>
+                        <select id="txCategory" required class="w-full p-2.5 border rounded-xl dark:bg-slate-700 dark:border-slate-600"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 mb-1">Hamyon</label>
+                        <select id="txWallet" required class="w-full p-2.5 border rounded-xl dark:bg-slate-700 dark:border-slate-600"></select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Sana</label>
+                    <input type="date" id="txDate" required class="w-full p-2.5 border rounded-xl dark:bg-slate-700 dark:border-slate-600">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">Izoh (ixtiyoriy)</label>
+                    <input type="text" id="txNote" placeholder="Tafsilotlar..." class="w-full p-2.5 border rounded-xl dark:bg-slate-700 dark:border-slate-600">
+                </div>
+
+                <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-xl transition">Saqlash</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mobile Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 z-40 md:max-w-5xl md:mx-auto md:rounded-t-2xl">
+        <div class="flex justify-around items-center h-16 px-2">
+            <button onclick="switchTab('dashboard')" class="nav-btn flex flex-col items-center gap-1 text-primary-600" data-tab="dashboard">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span class="text-[10px] font-medium">Bosh sahifa</span>
+            </button>
+            <button onclick="switchTab('history')" class="nav-btn flex flex-col items-center gap-1 text-slate-400" data-tab="history">
+                <i class="fa-solid fa-receipt text-lg"></i>
+                <span class="text-[10px] font-medium">Tarix</span>
+            </button>
+            <button onclick="openTransactionModal('expense')" class="w-12 h-12 rounded-full bg-primary-600 text-white flex items-center justify-center text-xl shadow-lg transform -translate-y-3 hover:scale-105 transition">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+            <button onclick="switchTab('stats')" class="nav-btn flex flex-col items-center gap-1 text-slate-400" data-tab="stats">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+                <span class="text-[10px] font-medium">Statistika</span>
+            </button>
+            <button onclick="switchTab('settings')" class="nav-btn flex flex-col items-center gap-1 text-slate-400" data-tab="settings">
+                <i class="fa-solid fa-gear text-lg"></i>
+                <span class="text-[10px] font-medium">Sozlamalar</span>
+            </button>
+        </div>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+// State Management
+let state = {
+    transactions: [],
+    wallets: [
+        { id: 'w1', name: 'Naqd pul', balance: 0 },
+        { id: 'w2', name: 'Uzcard/Humo', balance: 0 }
+    ],
+    categories: {
+        income: ['Maosh', 'Biznes', 'Qo\'shimcha daromad', 'Sovg\'a', 'Boshqa'],
+        expense: ['Oziq-ovqat', 'Transport', 'Uy-joy', 'Kiyim-kechak', 'Sog\'liq', 'Ta\'lim', 'Ko\'ngilochar', 'Biznes', 'Boshqa']
+    },
+    budgets: [],
+    settings: {
+        pin: null,
+        sheetUrl: '',
+        incognito: false,
+        theme: 'light'
+    }
+};
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    setupDefaults();
+    renderAll();
+    initCharts();
+});
+
+function setupDefaults() {
+    document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+    if (state.settings.theme === 'dark') {
+        document.documentElement.classList.add('dark');
+    }
+}
+
+// Storage Management
+function saveState() {
+    localStorage.setItem('pul_hisobi_data', JSON.stringify(state));
+    syncToGoogleSheets();
+}
+
+function loadState() {
+    const data = localStorage.getItem('pul_hisobi_data');
+    if (data) {
+        state = JSON.parse(data);
+    }
+}
+
+// UI Navigation
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.dataset.tab === tabId) {
+            btn.classList.add('text-primary-600');
+            btn.classList.remove('text-slate-400');
+        } else {
+            btn.classList.remove('text-primary-600');
+            btn.classList.add('text-slate-400');
+        }
+    });
+
+    if (tabId === 'stats') updateStatsChart();
+}
+
+// Transaction Modal & Actions
+function openTransactionModal(type = 'income') {
+    document.getElementById('txType').value = type;
+    document.getElementById('modalTitle').innerText = type === 'income' ? "Kirim qo'shish" : "Chiqim qo'shish";
+    
+    // Fill Categories
+    const catSelect = document.getElementById('txCategory');
+    catSelect.innerHTML = state.categories[type].map(c => `<option value="${c}">${c}</option>`).join('');
+
+    // Fill Wallets
+    const walletSelect = document.getElementById('txWallet');
+    walletSelect.innerHTML = state.wallets.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+
+    document.getElementById('transactionModal').classList.remove('hidden');
+}
+
+function closeTransactionModal() {
+    document.getElementById('transactionModal').classList.add('hidden');
+    document.getElementById('transactionForm').reset();
+}
+
+function saveTransaction(e) {
+    e.preventDefault();
+    const id = document.getElementById('txId').value || 'tx_' + Date.now();
+    const type = document.getElementById('txType').value;
+    const amount = parseFloat(document.getElementById('txAmount').value);
+    const category = document.getElementById('txCategory').value;
+    const walletId = document.getElementById('txWallet').value;
+    const date = document.getElementById('txDate').value;
+    const note = document.getElementById('txNote').value;
+
+    const tx = { id, type, amount, category, walletId, date, note };
+    
+    state.transactions.unshift(tx);
+    saveState();
+    renderAll();
+    closeTransactionModal();
+}
+
+// Render Functions
+function renderAll() {
+    calculateBalances();
+    renderWallets();
+    renderRecentTransactions();
+    filterHistory();
+}
+
+function calculateBalances() {
+    let income = 0;
+    let expense = 0;
+
+    state.transactions.forEach(t => {
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+    });
+
+    const total = income - expense;
+
+    document.getElementById('totalBalance').innerText = formatMoney(total);
+    document.getElementById('totalIncome').innerText = formatMoney(income);
+    document.getElementById('totalExpense').innerText = formatMoney(expense);
+}
+
+function renderWallets() {
+    const container = document.getElementById('walletsList');
+    container.innerHTML = state.wallets.map(w => `
+        <div class="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <span class="text-xs text-slate-500">${w.name}</span>
+            <p class="font-bold text-sm mt-1">${formatMoney(w.balance)}</p>
+        </div>
+    `).join('');
+}
+
+function renderRecentTransactions() {
+    const container = document.getElementById('recentTransactions');
+    const recent = state.transactions.slice(0, 5);
+
+    if (recent.length === 0) {
+        container.innerHTML = `<p class="text-center text-sm text-slate-400 py-4">Operatsiyalar yo'q</p>`;
+        return;
+    }
+
+    container.innerHTML = recent.map(t => `
+        <div class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl ${t.type === 'income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center font-bold">
+                    <i class="fa-solid ${t.type === 'income' ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                </div>
+                <div>
+                    <h4 class="font-bold text-sm">${t.category}</h4>
+                    <span class="text-xs text-slate-400">${t.date}</span>
+                </div>
+            </div>
+            <p class="font-bold ${t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}">
+                ${t.type === 'income' ? '+' : '-'}${formatMoney(t.amount)}
+            </p>
+        </div>
+    `).join('');
+}
+
+// Categories Management
+function addNewCategory() {
+    const name = document.getElementById('newCatName').value.trim();
+    const type = document.getElementById('newCatType').value;
+
+    if (name && !state.categories[type].includes(name)) {
+        state.categories[type].push(name);
+        saveState();
+        document.getElementById('newCatName').value = '';
+        alert('Kategoriya muvaffaqiyatli qo\'shildi!');
+    }
+}
+
+// Helpers & Formatting
+function formatMoney(amount) {
+    if (state.settings.incognito) return '*** UZS';
+    return new Intl.NumberFormat('uz-UZ').format(amount) + ' UZS';
+}
+
+function toggleIncognito() {
+    state.settings.incognito = !state.settings.incognito;
+    document.getElementById('incognitoIcon').className = state.settings.incognito ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+    renderAll();
+}
+
+function toggleTheme() {
+    state.settings.theme = state.settings.theme === 'light' ? 'dark' : 'light';
+    document.documentElement.classList.toggle('dark');
+    saveState();
+}
+
+// Google Sheets Sync
+function saveSheetUrl() {
+    const url = document.getElementById('sheetUrlInput').value.trim();
+    state.settings.sheetUrl = url;
+    saveState();
+    alert('Google Sheets URL saqlandi');
+}
+
+function syncToGoogleSheets() {
+    if (!state.settings.sheetUrl) return;
+
+    fetch(state.settings.sheetUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+    }).catch(err => console.error('Sync Error:', err));
+}
+
+// Charts
+let dashboardChartInstance = null;
+function initCharts() {
+    const ctx = document.getElementById('dashboardChart').getContext('2d');
+    dashboardChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Kirim', 'Chiqim'],
+            datasets: [{
+                data: [1, 1],
+                backgroundColor: ['#10b981', '#ef4444']
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
