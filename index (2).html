@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="uz" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pul Hisobi — Shaxsiy Moliya Boshqaruvi</title>
+    <!-- Manifest for PWA -->
+    <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlB1bCBIaXNvYmkg4oCUIFNoYXhzaXkgTW9saXlhIiwKICAic2hvcnRfbmFtZSI6ICJQdWwgSGlzb2JpIiwKICAic3RhcnRfdXJsIjogIi4vaW5kZXguaHRtbCIsCiAgImRpc3BsYXkiOiAic3RhbmRhbG9uZSIsCiAgImJhY2tncm91bmRfY29sb3IiOiAiIzBmMTdhIiwKICAidGhlbWVfY29sb3IiOiAiIzAyODRjNyIKfQ==">
+    <meta name="theme-color" content="#0284c7">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            dark: '#0f172a'
+                        },
+                        income: '#10B981',
+                        expense: '#EF4444'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN with graceful fallback -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" onerror="window.chartJsFailed = true;"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 5rem); }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Header Bar -->
+    <header class="sticky top-0 z-30 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+        <div class="max-w-4xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+                    <i data-lucide="wallet" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight tracking-tight text-slate-900 dark:text-white">Pul Hisobi</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400" id="user-greeting-header">Xush kelibsiz!</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="incognito-toggle-btn" onclick="toggleIncognito()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" title="Yashirin rejim">
+                    <i data-lucide="eye" id="incognito-icon" class="w-5 h-5"></i>
+                </button>
+                <button id="theme-toggle-btn" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors" aria-label="Mavzuni o'zgartirish">
+                    <i data-lucide="moon" id="theme-icon-dark" class="w-5 h-5 hidden"></i>
+                    <i data-lucide="sun" id="theme-icon-light" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Notification Toast Box -->
+    <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-none"></div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 pb-24 md:pb-8">
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content space-y-6">
+            <!-- Balance Card -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-sky-950 p-6 text-white shadow-xl shadow-slate-900/10">
+                <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl"></div>
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Umumiy Balans</span>
+                        <h2 class="text-3xl font-extrabold mt-1 tracking-tight" id="dash-total-balance">0 UZS</h2>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30" id="dash-status-badge">Aktiv</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                            <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Jami Kirim</p>
+                            <p class="text-sm font-semibold text-emerald-400" id="dash-total-income">+0 UZS</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                            <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400">Jami Chiqim</p>
+                            <p class="text-sm font-semibold text-rose-400" id="dash-total-expense">-0 UZS</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="openModal('income')" class="flex items-center justify-center gap-2 p-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
+                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    <span>Kirim qo'shish</span>
+                </button>
+                <button onclick="openModal('expense')" class="flex items-center justify-center gap-2 p-3.5 bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-2xl shadow-lg shadow-rose-500/20 transition-all active:scale-95">
+                    <i data-lucide="minus-circle" class="w-5 h-5"></i>
+                    <span>Chiqim qo'shish</span>
+                </button>
+            </div>
+
+            <!-- Monthly Quick Overview & Chart -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4 text-sky-500"></i>
+                            Joriy Oy Natijalari
+                        </h3>
+                        <span class="text-xs text-slate-500" id="current-month-name">--</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-600 dark:text-slate-400">Oy Daromadi:</span>
+                            <span class="font-semibold text-emerald-600 dark:text-emerald-400" id="dash-month-income">0 UZS</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-slate-600 dark:text-slate-400">Oy Xarajatlari:</span>
+                            <span class="font-semibold text-rose-600 dark:text-rose-400" id="dash-month-expense">0 UZS</span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex justify-between items-center text-sm font-semibold">
+                            <span class="text-slate-800 dark:text-slate-200">Sof tejamkorlik:</span>
+                            <span id="dash-month-savings" class="text-sky-600 dark:text-sky-400">0 UZS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col justify-center items-center relative min-h-[180px]">
+                    <h3 class="font-bold text-slate-800 dark:text-slate-100 mb-2 w-full text-left text-sm">Kirim / Chiqim Nisbati</h3>
+                    <div class="w-full max-w-[200px] h-[140px] flex items-center justify-center relative">
+                        <canvas id="dashMiniChart"></canvas>
+                        <div id="dashMiniChartFallback" class="hidden text-center text-xs text-slate-400">Diagramma yuklanmadi</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <i data-lucide="history" class="w-4 h-4 text-sky-500"></i>
+                        Oxirgi Operatsiyalar
+                    </h3>
+                    <button onclick="switchTab('history')" class="text-xs font-semibold text-sky-600 dark:text-sky-400 hover:underline">Barchasi &rarr;</button>
+                </div>
+                <div id="dash-recent-list" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- TAB 2: HISTORY -->
+        <section id="tab-history" class="tab-content hidden space-y-4">
+            <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
+                <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="hist-search" placeholder="Qidirish (izoh yoki kategoriya)..." class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    </div>
+                    <button id="hist-filter-toggle" class="p-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300">
+                        <i data-lucide="filter" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Expanded Filters -->
+                <div id="hist-filter-panel" class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Operatsiya Turi</label>
+                        <select id="hist-filter-type" class="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <option value="all">Barchasi</option>
+                            <option value="income">Faqat Kirim</option>
+                            <option value="expense">Faqat Chiqim</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Kategoriya</label>
+                        <select id="hist-filter-category" class="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <option value="all">Barcha Kategoriyalar</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Saralash</label>
+                        <select id="hist-sort" class="w-full p-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <option value="date-desc">Eng yangi birinchi</option>
+                            <option value="date-asc">Eng eski birinchi</option>
+                            <option value="amount-desc">Eng katta summa</option>
+                            <option value="amount-asc">Eng kichik summa</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Result Summary Bar -->
+            <div class="flex justify-between items-center text-xs px-2 text-slate-500">
+                <span id="hist-count-label">0 ta operatsiya</span>
+                <span id="hist-sum-label" class="font-semibold text-slate-700 dark:text-slate-300">Jami: 0 UZS</span>
+            </div>
+
+            <!-- Full List -->
+            <div id="hist-full-list" class="space-y-3"></div>
+        </section>
+
+        <!-- TAB 3: STATISTICS -->
+        <section id="tab-stats" class="tab-content hidden space-y-5">
+            <div class="flex justify-between items-center bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700/60">
+                <span class="text-sm font-medium px-2">Sana oralig'i:</span>
+                <select id="stats-period" class="p-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-medium">
+                    <option value="this-month">Joriy oy</option>
+                    <option value="last-month">O'tgan oy</option>
+                    <option value="this-year">Joriy yil</option>
+                    <option value="all-time">Barcha davr</option>
+                </select>
+            </div>
+
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-center">
+                    <p class="text-xs text-slate-500">Jami Kirim</p>
+                    <p class="text-base font-bold text-emerald-500 mt-1" id="stat-inc-sum">0 UZS</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-center">
+                    <p class="text-xs text-slate-500">Jami Chiqim</p>
+                    <p class="text-base font-bold text-rose-500 mt-1" id="stat-exp-sum">0 UZS</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-center">
+                    <p class="text-xs text-slate-500">Sof Natija</p>
+                    <p class="text-base font-bold text-sky-500 mt-1" id="stat-net-sum">0 UZS</p>
+                </div>
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 text-center">
+                    <p class="text-xs text-slate-500">Eng Katta Xarajat</p>
+                    <p class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1 truncate" id="stat-top-cat">--</p>
+                </div>
+            </div>
+
+            <!-- Category Chart -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm">Kategoriyalar Bo'yicha Xarajatlar</h3>
+                <div class="w-full h-64 flex items-center justify-center relative">
+                    <canvas id="statCategoryChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Expense breakdown list -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-sm">Kategoriya Tafsilotlari</h3>
+                <div id="stat-cat-breakdown" class="space-y-3 text-sm"></div>
+            </div>
+        </section>
+
+        <!-- TAB 4: BUDGET -->
+        <section id="tab-budget" class="tab-content hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Oylik Byudjet Rejasi</h2>
+                    <p class="text-xs text-slate-500">Xarajatlaringizni nazorat ostida tuting</p>
+                </div>
+                <button onclick="openBudgetModal()" class="p-2.5 bg-sky-600 text-white rounded-xl text-xs font-medium flex items-center gap-1 shadow-md shadow-sky-600/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Byudjet o'rnatish</span>
+                </button>
+            </div>
+
+            <div id="budget-list" class="space-y-4"></div>
+        </section>
+
+        <!-- TAB 5: SAVINGS -->
+        <section id="tab-savings" class="tab-content hidden space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100">Jamg'arma Maqsadlari</h2>
+                    <p class="text-xs text-slate-500">Katta xaridlar va maqsadlar uchun jamg'aring</p>
+                </div>
+                <button onclick="openSavingsModal()" class="p-2.5 bg-emerald-600 text-white rounded-xl text-xs font-medium flex items-center gap-1 shadow-md shadow-emerald-600/20">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Yangi Maqsad</span>
+                </button>
+            </div>
+
+            <div id="savings-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </section>
+
+        <!-- TAB 6: SETTINGS -->
+        <section id="tab-settings" class="tab-content hidden space-y-5">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base">Shaxsiy Sozlamalar</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Foydalanuvchi Ismi</label>
+                        <input type="text" id="setting-user-name" class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Boshlang'ich Balans (UZS)</label>
+                        <input type="number" id="setting-initial-balance" class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    </div>
+                    <button onclick="saveSettings()" class="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-medium rounded-xl text-sm transition-colors">
+                        Sozlamalarni saqlash
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Category Adder -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base">Kategoriyalarni Boshqarish</h3>
+                <p class="text-xs text-slate-500">Yangi xarajat yoki daromad kategoriyasini qo'shing.</p>
+                <div class="flex gap-2">
+                    <select id="new-cat-type" class="p-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                        <option value="expense">Chiqim</option>
+                        <option value="income">Kirim</option>
+                    </select>
+                    <input type="text" id="new-cat-name" placeholder="Masalan: Kofe yoki Frilans" class="flex-1 p-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    <button onclick="addCustomCategory()" class="py-2.5 px-4 bg-emerald-600 text-white text-xs font-semibold rounded-xl hover:bg-emerald-700">Qo'shish</button>
+                </div>
+            </div>
+
+            <!-- Google Sheets Integration -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-emerald-500"></i>
+                    Google Sheets Sinxronizatsiyasi
+                </h3>
+                <p class="text-xs text-slate-500">Google Web App Webhook URL manzilini kiriting:</p>
+                <input type="url" id="setting-sheet-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                <button onclick="saveSheetUrl()" class="py-2 px-4 bg-emerald-600 text-white text-xs font-medium rounded-xl">URLni Saqlash</button>
+            </div>
+
+            <!-- Backup & Restore -->
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
+                <h3 class="font-bold text-slate-800 dark:text-slate-100 text-base">Ma'lumotlar Zaxirasi</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                    <button onclick="exportJSON()" class="py-2.5 px-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl text-xs flex items-center justify-center gap-2">
+                        <i data-lucide="download" class="w-4 h-4"></i> JSON Eksport
+                    </button>
+                    <button onclick="exportCSV()" class="py-2.5 px-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl text-xs flex items-center justify-center gap-2">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> CSV Eksport
+                    </button>
+                    <label class="py-2.5 px-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer">
+                        <i data-lucide="upload" class="w-4 h-4"></i> JSON Import
+                        <input type="file" id="import-json-file" accept=".json" class="hidden" onchange="importJSON(event)">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="bg-rose-50 dark:bg-rose-950/30 p-5 rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-3">
+                <h3 class="font-bold text-rose-700 dark:text-rose-400 text-base">Xavfli xudud</h3>
+                <button onclick="confirmResetAllData()" class="py-2.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-xl text-xs">
+                    Barcha ma'lumotlarni tozalash
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 px-2 py-1.5 pb-safe">
+        <div class="max-w-md mx-auto flex justify-between items-center relative">
+            <button onclick="switchTab('dashboard')" class="nav-btn flex-1 flex flex-col items-center py-1 text-sky-600 dark:text-sky-400" data-tab="dashboard">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Bosh sahifa</span>
+            </button>
+            <button onclick="switchTab('history')" class="nav-btn flex-1 flex flex-col items-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="history">
+                <i data-lucide="receipt" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Tarix</span>
+            </button>
+            <div class="relative -top-5 flex-1 flex justify-center">
+                <button onclick="openModal('expense')" class="w-12 h-12 rounded-full bg-gradient-to-r from-sky-500 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-sky-500/30 hover:scale-105 active:scale-95 transition-all">
+                    <i data-lucide="plus" class="w-7 h-7"></i>
+                </button>
+            </div>
+            <button onclick="switchTab('stats')" class="nav-btn flex-1 flex flex-col items-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="stats">
+                <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Statistika</span>
+            </button>
+            <button onclick="switchTab('budget')" class="nav-btn flex-1 flex flex-col items-center py-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" data-tab="budget">
+                <i data-lucide="target" class="w-5 h-5"></i>
+                <span class="text-[10px] font-medium mt-1">Byudjet</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MODALS -->
+    <div id="tx-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-t-3xl sm:rounded-3xl p-6 space-y-4 shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 id="tx-modal-title" class="text-base font-bold text-slate-800 dark:text-slate-100">Yangi Operatsiya</h3>
+                <button onclick="closeModal('tx-modal')" class="p-1 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="tx-form" class="space-y-3" onsubmit="handleTxSubmit(event)">
+                <input type="hidden" id="tx-id">
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl">
+                    <button type="button" id="tx-type-income-btn" onclick="setTxType('income')" class="py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300">Kirim</button>
+                    <button type="button" id="tx-type-expense-btn" onclick="setTxType('expense')" class="py-2 text-xs font-semibold rounded-lg text-slate-600 dark:text-slate-300">Chiqim</button>
+                </div>
+                <input type="hidden" id="tx-type" value="expense">
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Summa (UZS)*</label>
+                    <input type="number" id="tx-amount" min="1" step="any" placeholder="50000" required class="w-full p-3 text-base font-semibold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Kategoriya*</label>
+                    <select id="tx-category" required class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Sana*</label>
+                        <input type="date" id="tx-date" required class="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">To'lov Usuli</label>
+                        <select id="tx-payment" class="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                            <option value="Naqd pul">Naqd pul</option>
+                            <option value="Bank kartasi">Bank kartasi</option>
+                            <option value="Bank o'tkazmasi">Bank o'tkazmasi</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Izoh / Nomi</label>
+                    <input type="text" id="tx-note" placeholder="Masalan: Tushlik" class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <button type="submit" class="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-xl text-sm transition-colors mt-2">Saqlash</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: BUDGET -->
+    <div id="budget-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Byudjet Belgilash</h3>
+                <button onclick="closeModal('budget-modal')" class="p-1 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleBudgetSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Kategoriya</label>
+                    <select id="budget-category" class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Oylik Chegara Summasi (UZS)</label>
+                    <input type="number" id="budget-amount" min="1" required class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-sky-600 text-white font-medium rounded-xl text-sm">Saqlash</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: SAVINGS -->
+    <div id="savings-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 class="text-base font-bold text-slate-800 dark:text-slate-100">Yangi Jamg'arma Maqsadi</h3>
+                <button onclick="closeModal('savings-modal')" class="p-1 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSavingsSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Maqsad Nomi</label>
+                    <input type="text" id="savings-title" placeholder="Masalan: Telefon" required class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Kerakli Summa (UZS)</label>
+                    <input type="number" id="savings-target" min="1" required class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Sana</label>
+                    <input type="date" id="savings-date" required class="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-emerald-600 text-white font-medium rounded-xl text-sm">Yaratish</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: SAVINGS ACTION -->
+    <div id="savings-action-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl p-6 space-y-4 shadow-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3">
+                <h3 id="savings-action-title" class="text-base font-bold text-slate-800 dark:text-slate-100">Mablag' ajratish</h3>
+                <button onclick="closeModal('savings-action-modal')" class="p-1 text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSavingsActionSubmit(event)" class="space-y-3">
+                <input type="hidden" id="savings-action-id">
+                <input type="hidden" id="savings-action-type">
+                <div>
+                    <label class="text-xs text-slate-500 mb-1 block">Summa (UZS)</label>
+                    <input type="number" id="savings-action-amount" min="1" required class="w-full p-2.5 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-sky-600 text-white font-medium rounded-xl text-sm">Tasdiqlash</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // State
+        let state = {
+            transactions: [],
+            budgets: {},
+            savings: [],
+            categories: {
+                income: ['Maosh', 'Biznes daromadi', 'Qo\'shimcha daromad', 'Investitsiya daromadi', 'Sovg\'a', 'Boshqa kirim'],
+                expense: ['Oziq-ovqat', 'Transport', 'Uy-joy va kommunal', 'Kiyim-kechak', 'Sog\'liq', 'Ta\'lim', 'Oila', 'Ko\'ngilochar', 'Biznes', 'Boshqa chiqim']
+            },
+            settings: {
+                userName: 'Foydalanuvchi',
+                initialBalance: 0,
+                theme: 'light',
+                sheetUrl: '',
+                incognito: false
+            }
+        };
+
+        let dashChartInstance = null;
+        let statChartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            setupTheme();
+            renderAll();
+            setupEventListeners();
+            document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+            // Service Worker for offline PWA
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    self.addEventListener('install', e => e.waitUntil(caches.open('pwa-v1').then(c => c.addAll(['./index.html']))));
+                    self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+            }
+        });
+
+        function setupTheme() {
+            if (state.settings.theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('theme-icon-dark').classList.remove('hidden');
+                document.getElementById('theme-icon-light').classList.add('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('theme-icon-light').classList.remove('hidden');
+                document.getElementById('theme-icon-dark').classList.add('hidden');
+            }
+        }
+
+        document.getElementById('theme-toggle-btn').addEventListener('click', () => {
+            const isDark = document.documentElement.classList.toggle('dark');
+            state.settings.theme = isDark ? 'dark' : 'light';
+            document.getElementById('theme-icon-dark').classList.toggle('hidden', !isDark);
+            document.getElementById('theme-icon-light').classList.toggle('hidden', isDark);
+            saveState();
+        });
+
+        function toggleIncognito() {
+            state.settings.incognito = !state.settings.incognito;
+            renderAll();
+            showToast(state.settings.incognito ? "Yashirin rejim yoqildi" : "Yashirin rejim o'chirildi");
+        }
+
+        function saveState() {
+            localStorage.setItem('pul_hisobi_data', JSON.stringify(state));
+            syncToGoogleSheets();
+        }
+
+        function loadState() {
+            const saved = localStorage.getItem('pul_hisobi_data');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                } catch (e) {}
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function formatCurrency(amount) {
+            if (state.settings.incognito) return '*** UZS';
+            const val = Math.round(Number(amount) || 0);
+            return val.toLocaleString('uz-UZ') + ' UZS';
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'success' ? 'bg-emerald-600' : 'bg-rose-600';
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-2xl shadow-xl text-xs font-medium mb-2 transition-all flex items-center justify-between pointer-events-auto`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span><button onclick="this.parentElement.remove()">&times;</button>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.classList.add('text-sky-600', 'dark:text-sky-400');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('text-sky-600', 'dark:text-sky-400');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+            if (tabName === 'stats') renderStats();
+            if (tabName === 'history') renderHistory();
+            if (tabName === 'budget') renderBudgets();
+            if (tabName === 'savings') renderSavings();
+            if (tabName === 'settings') loadSettingsToForm();
+            lucide.createIcons();
+        }
+
+        function calculateBalances() {
+            let totalIncome = 0;
+            let totalExpense = 0;
+            state.transactions.forEach(tx => {
+                const amt = parseFloat(tx.amount) || 0;
+                if (tx.type === 'income') totalIncome += amt;
+                if (tx.type === 'expense') totalExpense += amt;
+            });
+            let totalSavingsAllocated = state.savings.reduce((sum, s) => sum + (parseFloat(s.current) || 0), 0);
+            const initial = parseFloat(state.settings.initialBalance) || 0;
+            return {
+                initial,
+                totalIncome,
+                totalExpense,
+                totalSavingsAllocated,
+                currentBalance: initial + totalIncome - totalExpense - totalSavingsAllocated
+            };
+        }
+
+        function renderAll() {
+            renderDashboard();
+            lucide.createIcons();
+        }
+
+        function renderDashboard() {
+            const balances = calculateBalances();
+            document.getElementById('user-greeting-header').innerText = `${escapeHtml(state.settings.userName)} hisobi`;
+            document.getElementById('dash-total-balance').innerText = formatCurrency(balances.currentBalance);
+            document.getElementById('dash-total-income').innerText = '+' + formatCurrency(balances.totalIncome);
+            document.getElementById('dash-total-expense').innerText = '-' + formatCurrency(balances.totalExpense);
+
+            const now = new Date();
+            let mIncome = 0, mExpense = 0;
+            state.transactions.forEach(tx => {
+                const txDate = new Date(tx.date);
+                if (txDate.getFullYear() === now.getFullYear() && txDate.getMonth() === now.getMonth()) {
+                    const amt = parseFloat(tx.amount) || 0;
+                    if (tx.type === 'income') mIncome += amt;
+                    if (tx.type === 'expense') mExpense += amt;
+                }
+            });
+
+            const monthNames = ["Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun", "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr"];
+            document.getElementById('current-month-name').innerText = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+            document.getElementById('dash-month-income').innerText = '+' + formatCurrency(mIncome);
+            document.getElementById('dash-month-expense').innerText = '-' + formatCurrency(mExpense);
+            document.getElementById('dash-month-savings').innerText = formatCurrency(mIncome - mExpense);
+
+            const recentContainer = document.getElementById('dash-recent-list');
+            const sortedRecent = [...state.transactions].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+            recentContainer.innerHTML = sortedRecent.length === 0 ? '<div class="text-center py-6 text-slate-400 text-xs">Hozircha operatsiyalar yo\'q.</div>' : sortedRecent.map(tx => renderTransactionItem(tx)).join('');
+            renderDashMiniChart(mIncome, mExpense);
+        }
+
+        function renderTransactionItem(tx) {
+            const isInc = tx.type === 'income';
+            return `
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl ${isInc ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center shrink-0">
+                            <i data-lucide="${isInc ? 'arrow-down-left' : 'arrow-up-right'}" class="w-5 h-5"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">${escapeHtml(tx.note || tx.category)}</p>
+                            <p class="text-[11px] text-slate-400">${escapeHtml(tx.category)} • ${tx.date}</p>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="text-sm font-bold ${isInc ? 'text-emerald-600' : 'text-rose-600'}">${isInc ? '+' : '-'}${formatCurrency(tx.amount)}</p>
+                        <div class="flex gap-1 justify-end mt-1">
+                            <button onclick="openModal('${tx.type}', '${tx.id}')" class="text-xs text-slate-400 hover:text-sky-500"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
+                            <button onclick="deleteTransaction('${tx.id}')" class="text-xs text-slate-400 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDashMiniChart(income, expense) {
+            const ctx = document.getElementById('dashMiniChart');
+            if (!ctx || window.chartJsFailed || typeof Chart === 'undefined') return;
+            if (dashChartInstance) dashChartInstance.destroy();
+            dashChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: ['Kirim', 'Chiqim'], datasets: [{ data: [income || (expense ? 0 : 1), expense], backgroundColor: ['#10B981', '#EF4444'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '70%' }
+            });
+        }
+
+        function openModal(type = 'expense', txId = null) {
+            const modal = document.getElementById('tx-modal');
+            document.getElementById('tx-form').reset();
+            document.getElementById('tx-modal-title').innerText = txId ? "Operatsiyani Tahrirlash" : "Yangi Operatsiya";
+            document.getElementById('tx-id').value = txId || '';
+
+            if (txId) {
+                const tx = state.transactions.find(t => t.id === txId);
+                if (tx) {
+                    setTxType(tx.type);
+                    document.getElementById('tx-amount').value = tx.amount;
+                    document.getElementById('tx-date').value = tx.date;
+                    document.getElementById('tx-payment').value = tx.paymentMethod || 'Naqd pul';
+                    document.getElementById('tx-note').value = tx.note || '';
+                    populateCategorySelect(tx.type);
+                    document.getElementById('tx-category').value = tx.category;
+                }
+            } else {
+                setTxType(type);
+                document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+            }
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+
+        function setTxType(type) {
+            document.getElementById('tx-type').value = type;
+            document.getElementById('tx-type-income-btn').className = `py-2 text-xs font-semibold rounded-lg transition-all ${type === 'income' ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'}`;
+            document.getElementById('tx-type-expense-btn').className = `py-2 text-xs font-semibold rounded-lg transition-all ${type === 'expense' ? 'bg-rose-500 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'}`;
+            populateCategorySelect(type);
+        }
+
+        function populateCategorySelect(type) {
+            const catSelect = document.getElementById('tx-category');
+            catSelect.innerHTML = state.categories[type].map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        function handleTxSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('tx-id').value;
+            const type = document.getElementById('tx-type').value;
+            const amount = parseFloat(document.getElementById('tx-amount').value);
+            const category = document.getElementById('tx-category').value;
+            const date = document.getElementById('tx-date').value;
+            const paymentMethod = document.getElementById('tx-payment').value;
+            const note = document.getElementById('tx-note').value.trim();
+
+            if (!amount || amount <= 0) return showToast("To'g'ri summa kiriting!", 'error');
+
+            if (id) {
+                const idx = state.transactions.findIndex(t => t.id === id);
+                if (idx !== -1) state.transactions[idx] = { id, type, amount, category, date, paymentMethod, note };
+            } else {
+                state.transactions.push({ id: 'tx_' + Date.now(), type, amount, category, date, paymentMethod, note });
+            }
+
+            saveState();
+            closeModal('tx-modal');
+            renderAll();
+            showToast("Operatsiya saqlandi");
+        }
+
+        function deleteTransaction(id) {
+            if (confirm("Ushbu operatsiyani o'chirmoqchimisiz?")) {
+                state.transactions = state.transactions.filter(t => t.id !== id);
+                saveState();
+                renderAll();
+                showToast("O'chirildi");
+            }
+        }
+
+        function addCustomCategory() {
+            const name = document.getElementById('new-cat-name').value.trim();
+            const type = document.getElementById('new-cat-type').value;
+            if (name && !state.categories[type].includes(name)) {
+                state.categories[type].push(name);
+                saveState();
+                document.getElementById('new-cat-name').value = '';
+                showToast("Kategoriya qo'shildi");
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('hist-search').addEventListener('input', renderHistory);
+            document.getElementById('hist-filter-type').addEventListener('change', renderHistory);
+            document.getElementById('hist-filter-category').addEventListener('change', renderHistory);
+            document.getElementById('hist-sort').addEventListener('change', renderHistory);
+            document.getElementById('stats-period').addEventListener('change', renderStats);
+            document.getElementById('hist-filter-toggle').addEventListener('click', () => {
+                document.getElementById('hist-filter-panel').classList.toggle('hidden');
+            });
+        }
+
+        function renderHistory() {
+            const search = document.getElementById('hist-search').value.toLowerCase();
+            const typeFilter = document.getElementById('hist-filter-type').value;
+            const catFilter = document.getElementById('hist-filter-category').value;
+            const sortBy = document.getElementById('hist-sort').value;
+
+            let filtered = state.transactions.filter(tx => {
+                const matchesSearch = (tx.note && tx.note.toLowerCase().includes(search)) || tx.category.toLowerCase().includes(search);
+                const matchesType = typeFilter === 'all' || tx.type === typeFilter;
+                const matchesCat = catFilter === 'all' || tx.category === catFilter;
+                return matchesSearch && matchesType && matchesCat;
+            });
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'date-desc') return new Date(b.date) - new Date(a.date);
+                if (sortBy === 'date-asc') return new Date(a.date) - new Date(b.date);
+                if (sortBy === 'amount-desc') return b.amount - a.amount;
+                if (sortBy === 'amount-asc') return a.amount - b.amount;
+                return 0;
+            });
+
+            document.getElementById('hist-count-label').innerText = `${filtered.length} ta operatsiya`;
+            const totalSum = filtered.reduce((acc, t) => acc + (t.type === 'income' ? parseFloat(t.amount) : -parseFloat(t.amount)), 0);
+            document.getElementById('hist-sum-label').innerText = `Jami: ${formatCurrency(totalSum)}`;
+
+            const container = document.getElementById('hist-full-list');
+            container.innerHTML = filtered.length === 0 ? '<div class="text-center py-8 text-slate-400 text-xs">Ma\'lumot topilmadi</div>' : filtered.map(tx => renderTransactionItem(tx)).join('');
+            lucide.createIcons();
+        }
+
+        function renderStats() {
+            const period = document.getElementById('stats-period').value;
+            const now = new Date();
+            let filtered = state.transactions.filter(tx => {
+                const d = new Date(tx.date);
+                if (period === 'this-month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                if (period === 'this-year') return d.getFullYear() === now.getFullYear();
+                return true;
+            });
+
+            let incSum = 0, expSum = 0, catMap = {};
+            filtered.forEach(tx => {
+                const amt = parseFloat(tx.amount);
+                if (tx.type === 'income') incSum += amt;
+                else {
+                    expSum += amt;
+                    catMap[tx.category] = (catMap[tx.category] || 0) + amt;
+                }
+            });
+
+            document.getElementById('stat-inc-sum').innerText = formatCurrency(incSum);
+            document.getElementById('stat-exp-sum').innerText = formatCurrency(expSum);
+            document.getElementById('stat-net-sum').innerText = formatCurrency(incSum - expSum);
+
+            let topCat = '--', maxVal = 0;
+            Object.keys(catMap).forEach(c => { if (catMap[c] > maxVal) { maxVal = catMap[c]; topCat = c; } });
+            document.getElementById('stat-top-cat').innerText = topCat !== '--' ? `${topCat}` : '--';
+
+            renderStatCategoryChart(catMap);
+        }
+
+        function renderStatCategoryChart(catMap) {
+            const ctx = document.getElementById('statCategoryChart');
+            if (!ctx || window.chartJsFailed || typeof Chart === 'undefined') return;
+            if (statChartInstance) statChartInstance.destroy();
+            const labels = Object.keys(catMap);
+            const data = Object.values(catMap);
+            statChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: { labels: labels.length ? labels : ['Yo\'q'], datasets: [{ data: data.length ? data : [1], backgroundColor: ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function openBudgetModal() {
+            document.getElementById('budget-category').innerHTML = state.categories.expense.map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById('budget-modal').classList.remove('hidden');
+        }
+
+        function handleBudgetSubmit(e) {
+            e.preventDefault();
+            const cat = document.getElementById('budget-category').value;
+            const amt = parseFloat(document.getElementById('budget-amount').value);
+            if (amt > 0) state.budgets[cat] = amt;
+            saveState();
+            closeModal('budget-modal');
+            renderBudgets();
+        }
+
+        function renderBudgets() {
+            const container = document.getElementById('budget-list');
+            const keys = Object.keys(state.budgets);
+            if (!keys.length) {
+                container.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">Byudjet belgilanmagan.</div>';
+                return;
+            }
+            container.innerHTML = keys.map(cat => {
+                const limit = state.budgets[cat];
+                const spent = state.transactions.filter(t => t.type === 'expense' && t.category === cat).reduce((s, t) => s + parseFloat(t.amount), 0);
+                const ratio = Math.min(Math.round((spent / limit) * 100), 100);
+                return `
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-2">
+                        <div class="flex justify-between text-xs font-bold"><span>${escapeHtml(cat)}</span><span>${formatCurrency(spent)} / ${formatCurrency(limit)}</span></div>
+                        <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2"><div class="bg-sky-500 h-2 rounded-full" style="width: ${ratio}%"></div></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openSavingsModal() { document.getElementById('savings-modal').classList.remove('hidden'); }
+        function handleSavingsSubmit(e) {
+            e.preventDefault();
+            const title = document.getElementById('savings-title').value;
+            const target = parseFloat(document.getElementById('savings-target').value);
+            const date = document.getElementById('savings-date').value;
+            if (target > 0) state.savings.push({ id: 'sav_' + Date.now(), title, target, current: 0, date });
+            saveState();
+            closeModal('savings-modal');
+            renderSavings();
+        }
+
+        function renderSavings() {
+            const container = document.getElementById('savings-list');
+            if (!state.savings.length) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-slate-400 text-xs">Maqsadlar mavjud emas.</div>';
+                return;
+            }
+            container.innerHTML = state.savings.map(s => `
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/60 space-y-2">
+                    <h4 class="font-bold text-sm">${escapeHtml(s.title)}</h4>
+                    <p class="text-xs text-slate-400">${formatCurrency(s.current)} / ${formatCurrency(s.target)}</p>
+                </div>
+            `).join('');
+        }
+
+        function loadSettingsToForm() {
+            document.getElementById('setting-user-name').value = state.settings.userName;
+            document.getElementById('setting-initial-balance').value = state.settings.initialBalance;
+            document.getElementById('setting-sheet-url').value = state.settings.sheetUrl || '';
+        }
+
+        function saveSettings() {
+            state.settings.userName = document.getElementById('setting-user-name').value;
+            state.settings.initialBalance = parseFloat(document.getElementById('setting-initial-balance').value) || 0;
+            saveState();
+            renderAll();
+            showToast("Sozlamalar saqlandi");
+        }
+
+        function saveSheetUrl() {
+            state.settings.sheetUrl = document.getElementById('setting-sheet-url').value;
+            saveState();
+            showToast("Google Sheets URL saqlandi");
+        }
+
+        function syncToGoogleSheets() {
+            if (!state.settings.sheetUrl) return;
+            fetch(state.settings.sheetUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(state)
+            }).catch(() => {});
+        }
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const a = document.createElement('a');
+            a.href = dataStr;
+            a.download = `Pul_Hisobi_Backup.json`;
+            a.click();
+        }
+
+        function exportCSV() {
+            let csv = "ID,Type,Amount,Category,Date\n";
+            state.transactions.forEach(t => csv += `${t.id},${t.type},${t.amount},"${t.category}",${t.date}\n`);
+            const a = document.createElement('a');
+            a.href = encodeURI("data:text/csv;charset=utf-8," + csv);
+            a.download = `Pul_Hisobi_Export.csv`;
+            a.click();
+        }
+
+        function importJSON(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    state = JSON.parse(evt.target.result);
+                    saveState();
+                    renderAll();
+                    showToast("Ma'lumotlar tiklandi");
+                } catch (err) { showToast("Xato fayl", "error"); }
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmResetAllData() {
+            if (confirm("Barcha ma'lumotlarni o'chirmoqchimisiz?")) {
+                localStorage.removeItem('pul_hisobi_data');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
